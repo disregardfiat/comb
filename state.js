@@ -86,7 +86,7 @@ module.exports = {
       p: "ragnarok-claim-tokens-update", //permlink
       r: "0", //royalty
       ra: "", //royalty account
-      s: "QmYSRLiGaEmucSXoNiq9RqazmDuEZmCELRDg4wyE7Fo8kX", //nft script
+      s: "QmPohNMMe4Rxmw3SQ1WvbiXAdgtuoM3VfN355CoKAJBn4G", //nft script
       t: 0, //type
       u: "", //uids
     },
