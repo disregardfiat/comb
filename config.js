@@ -50,15 +50,15 @@ const clients = ENV.clients || [
 
 //!!!!!!! -- THESE ARE COMMUNITY CONSTANTS -- !!!!!!!!!//
 //TOKEN CONFIGS -- ALL COMMUNITY RUNNERS NEED THESE SAME VALUES
-const starting_block = 49988008; //from what block does your token start
+const starting_block = 63631500; //from what block does your token start
 const prefix = 'duat_' //Community token name for Custom Json IDs
 const TOKEN = 'DUAT' //Token name
 const precision = 3 //precision of token
 const tag = 'ragnarok' //the fe.com/<tag>/@<leader>/<permlink>
-const jsonTokenName = 'dlux' //what customJSON in Escrows and sends is looking for
+const jsonTokenName = 'duat' //what customJSON in Escrows and sends is looking for
 const leader = 'inconceivable' //Default account to pull state from, will post token 
-const ben = 'dlux-io' //Account where comment benifits trigger token action
-const delegation = 'dlux-io' //account people can delegate to for rewards
+const ben = '' //Account where comment benifits trigger token action
+const delegation = '' //account people can delegate to for rewards
 const delegationWeight = 1000 //when to trigger community rewards with bens
 const msaccount = 'ragnarok-cc' //account controlled by community leaders
 const msPubMemo = 'STM5GNM3jpjWh7Msts5Z37eM9UPfGwTMU7Ksats3RdKeRaP5SveR9' //memo key for msaccount
@@ -68,8 +68,8 @@ const mainAPI = 'duat.hivehoneycomb.com' //leaders API probably
 const mainRender = 'duatdata.hivehoneycomb.com' //data and render server
 const mainFE = 'ragnarok.com' //frontend for content
 const mainIPFS = 'a.ipfs.dlux.io' //IPFS service
-const mainICO = 'robotolux' //Account collecting ICO HIVE
-const footer = `\n[Find us on Discord](https://discord.gg/Beeb38j)`
+const mainICO = '' //Account collecting ICO HIVE
+const footer = `\n[Find us on Discord](https://bit.ly/discordragnarok)`;
 const hive_service_fee = 100 //HIVE service fee for transactions in Hive/HBD in centipercents (1% = 100)
 const features = {
     pob: false, //proof of brain
@@ -80,7 +80,7 @@ const features = {
     inflation: false,
     dex: true, //dex
     nft: true, //nfts
-    state: true, //api dumps
+    state: false, //api dumps
     claimdrop: true //claim drops
 }
 
@@ -176,7 +176,7 @@ const featuresModel = {
         },
       ],
     },
-    
+
   ],
 };
 const adverts = [
