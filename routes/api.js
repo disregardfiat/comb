@@ -883,7 +883,7 @@ exports.sets = (req, res, next) => {
                     precision: config.precision,
                     token: config.TOKEN
                 },
-                period_div: mem[1][set]?.p
+                period_div: mem[1][set]?.d
             })
         }
         res.setHeader('Content-Type', 'application/json')

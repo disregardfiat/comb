@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+//<html><head><script>
+function compile (message, display) {
+    const SVG =
+      '<img src="https://ipfs.io/ipfs/QmX4KrARSb2opHKjRNNBC4Ymk9p8AD4N5qZVu6zndyvfuv" />';
+    if(display){
+        document.getElementById('body').innerHTML = SVG
+    } else {
+        return {
+          HTML: SVG,
+          attributes: [{ redeem: "1 Ragnarok Game Piece" }], //['Common Green','Common Red','Common Blue','Rare Blue','Rare Green','Legendary Red','Epic Green']
+          set: {
+            Color1: "#ffd700", //gold
+            Color2: "#28344C", //black
+            Description: `Redeem 1 Ragnarok Claim Token for 1 Ragnarok Game Piece.`,
+            faicon: `far fa-hammer-war`,
+            banner: "Qmae7Do7rVZnjZitrVTN8NZqkiz6UBdX68BNtQDyfZpF6S", //png size: 1400 x 400
+            featured: "QmYMzE56JAQ8geCDPgXCy6s1H6pPNqjKUipR4wrsXAoFRW", //png size: 600 x 400
+            logo: "QmX4KrARSb2opHKjRNNBC4Ymk9p8AD4N5qZVu6zndyvfuv", //png size: 350 x 350
+            wrapped: "QmX4KrARSb2opHKjRNNBC4Ymk9p8AD4N5qZVu6zndyvfuv", //png size: 1400 x 400
+            category: ["Collectibles", "Game"],
+            links: [
+              { discord: "https://bit.ly/discordragnarok" },
+              { twitter: "https://twitter.com/ragnarok_hive" },
+              { telegram: "https://t.me/ragnarok_hive" },
+              { hive: "https://peakd.com/@ragnarok.game" },
+              { community: "https://peakd.com/c/hive-100039" },
+              {},
+            ],
+          },
+        };
+    }
+}       
+//</script>
+/*
+//<script>
+if (window.addEventListener) {
+    window.addEventListener("message", onMessage, false);
+    }
+    else if (window.attachEvent) {
+    window.attachEvent("onmessage", onMessage, false);
+    }
+    function onMessage(event) {
+    var data = event.data;
+    if (typeof(window[data.func]) == "function") {
+    const got = window[data.func].call(null, data.message);
+    window.parent.postMessage({
+        'func': 'compiled',
+        'message': got
+        }, "*");
+    }
+    }
+function onLoad(id){
+    window.parent.postMessage({
+        'func': 'loaded',
+        'message': id
+        }, "*");
+}
+//</script>
+*/
+//</head>
+//<body id="body">Append ?NFT_UID to the address bar to see that NFT. "...html?A6"<script>const uid = location.href.split('?')[1]; if(uid){compile(uid, true)}else{onLoad(uid)}</script></body></html>

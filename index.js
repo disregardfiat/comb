@@ -267,7 +267,7 @@ function startApp() {
   );
   processor.on("send", HR.send);
   processor.on("claim", HR.claim);
-  processor.on("node_add", HR.node_add);
+  if (config.features.claim) processor.on("drop_claim", HR.drop_claim);
   processor.on("node_delete", HR.node_delete);
   processor.on("report", HR.report);
   processor.on("gov_down", HR.gov_down);
@@ -317,18 +317,19 @@ function startApp() {
     processor.on("ft_airdrop", HR.ft_airdrop);
     processor.on("nft_transfer", HR.nft_transfer);
     processor.on("nft_auction", HR.nft_auction);
-    processor.on("nft_hauction", HR.nft_hauction);
+    //processor.on("nft_hauction", HR.nft_hauction);
     processor.on("nft_bid", HR.nft_bid);
     processor.on("nft_transfer_cancel", HR.nft_transfer_cancel);
     processor.on("nft_reserve_transfer", HR.nft_reserve_transfer);
     processor.on("nft_reserve_complete", HR.nft_reserve_complete);
-    processor.on("nft_define", HR.nft_define);
-    processor.on("nft_add_roy", HR.nft_add_roy);
-    processor.on("nft_div", HR.nft_div);
-    processor.on("nft_define_delete", HR.nft_define_delete);
+    processor.on("fth_buy", HR.fth_buy);
+    //processor.on("nft_define", HR.nft_define);
+    //processor.on("nft_add_roy", HR.nft_add_roy);
+    //processor.on("nft_div", HR.nft_div);
+    //processor.on("nft_define_delete", HR.nft_define_delete);
     processor.on("nft_melt", HR.nft_delete);
-    processor.on("nft_mint", HR.nft_mint);
-    processor.on("nft_pfp", HR.nft_pfp);
+    //processor.on("nft_mint", HR.nft_mint); //Minting will be in a future release.
+    //processor.on("nft_pfp", HR.nft_pfp);
   }
   //do things in cycles based on block time
   processor.onBlock(function (num, pc, prand, bh) {

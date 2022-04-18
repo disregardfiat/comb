@@ -1,5 +1,5 @@
 const { onStreamingStart } = require('./onStreamingStart')
-const { send, claim } = require('./send')
+const { send, claim, drop_claim } = require('./send')
 const { gov_up, gov_down } = require('./gov')
 const { power_up, power_down, power_grant } = require('./power')
 const { delegate_vesting_shares } = require('./delegate_vesting_shares')
@@ -27,6 +27,7 @@ const {
     ft_escrow,
     ft_airdrop,
     ft_transfer,
+    fth_buy,
     fts_sell_h,
     fts_sell_hcancel,
     nft_bid,
@@ -58,6 +59,7 @@ module.exports = {
     ft_escrow,
     ft_transfer,
     fts_sell_h,
+    fth_buy,
     fts_sell_hcancel,
     ft_airdrop,
     nft_transfer,
@@ -94,6 +96,7 @@ module.exports = {
     report,
     send,
     claim,
+    drop_claim,
     sig_submit,
     osig_submit,
     transfer,

@@ -1223,7 +1223,8 @@ exports.fts_sell_h = function(json, from, active, pc) {
         ltp = getPathObj(['lth']),
         Pbal = getPathObj(['balances']),
         h = parseInt(json.hive) || 0, 
-        b = parseInt(json.hbd) || 0,
+        b = h ? 0 : parseInt(json.hbd) || 0,
+        p = h || b ? 0 : parseInt(json.price) || 0,
         q = parseInt(json.quantity),
         e= json.enforce || false
         d = `${from}_10000`,
@@ -1250,6 +1251,7 @@ exports.fts_sell_h = function(json, from, active, pc) {
                     listing = {
                         h,//millihive
                         b,//millihbd
+                        p,//millitoken
                         q,//qty
                         d,//distro string,
                         o: from,//seller
@@ -1345,6 +1347,58 @@ exports.ft_buy = function(json, from, active, pc) {
         }
     })
     .catch(e => { console.log(e); });
+}
+
+/*
+json = {
+    set: 'rtc',
+    item: 'claim',
+    qty: 2,
+    amount: 224000, //millitoken
+}
+*/
+exports.fth_buy = function(json, from, active, pc) {
+    let Pitem = getPathObj(["lth", `${json.set}L${json.item}`]),
+        Ptoken = getPathNum(["balances", from])
+    Promise.all([Pitem, Ptoken]).then((mem) => {
+        let listing = mem[0],
+            bal = mem[1],
+            amount = parseInt(json[config.jsonTokenName]),
+            ops = [],
+            qty = parseInt(json.qty)
+        if (listing && !listing.h && !listing.b && amount == parseInt(qty * listing.p) && active && listing.q > qty && amount <= bal) {
+            let distro = listing.d.split(','),
+            promises = [],
+            left = amount
+            listing.q -= qty
+            for (var i = 0; i < distro.length; i++) {
+                let d = distro[i].split("_"),
+                  amt = parseInt((d[1] * amount) / 10000);
+                left -= amt
+                if(i == distro.length - 1) amt = left
+                promises.push(add(d[0], amt))
+            }
+            promises.push(addMT(["rnfts", json.set, json.from], parseInt(qty)));
+            Promise.all(promises).then(empty => {
+                let msg = `@${from} purchased ${qty} of ${json.set}`;
+                if (config.hookurl || config.status)
+                  postToDiscord(
+                    msg,
+                    `${json.block_num}:${json.transaction_id}`
+                  );
+                ops.push({
+                  type: "put",
+                  path: ["feed", `${json.block_num}:${json.transaction_id}`],
+                  data: msg,
+                });
+                ops.push({type:'put', path:['balances', from], data: bal - amount})
+                ops.push({type: 'put', path: ['lth', `${json.set}L${json.item}`], data: listing})
+                store.batch(ops, pc);
+            })
+        } else {
+            pc[0](pc[2]);
+        }
+    })
 }
 
 exports.ft_sell_cancel = function(json, from, active, pc) {
