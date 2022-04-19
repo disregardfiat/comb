@@ -169,8 +169,8 @@ exports.processor = processor;
 //HIVE API CODE
 
 //Start Program Options
-dynStart();
-//startWith("", true);
+//dynStart();
+startWith("", true);
 Watchdog.monitor();
 
 // API defs
