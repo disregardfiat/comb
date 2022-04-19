@@ -106,7 +106,7 @@ exports.drop_claim = (json, from, active, pc) => {
               .then((res) => res.json())
               .then((snap) => {
                 //{"hiveCurrent": 743.805, "hiveSnap": 743.805, "vestCurrent": 3832862.583523, "vestSnap": 3470785.995649, "hivePowerSnap": 1879.34242911609, "Larynx": 2623.14742911609, "snapshotBlock": 60714039, "snapshotTimestamp": "2022-01-07T08:00:00", "username": "disregardfiat"}
-                trak = parseInt(snap.Larynx);
+                trak = parseInt(snap.Larynx) * 1000;
                 ops.push({
                   type: "put",
                   path: ["stats", "tokenSupply"],
