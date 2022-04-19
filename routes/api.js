@@ -1732,7 +1732,7 @@ exports.user = (req, res, next) => {
                 }
                 arr.push(c)
             }
-    if(typeof v[10] != 'number')fetch(`${config.snapcs}/api/snapshot?u=${un}`).then(r => r.json()).then(function(claim) {
+    if(typeof v[11] != 'number')fetch(`${config.snapcs}/api/snapshot?u=${un}`).then(r => r.json()).then(function(claim) {
             res.send(JSON.stringify({
                 balance: v[0],
                 claim: v[9],
@@ -1740,7 +1740,7 @@ exports.user = (req, res, next) => {
                     availible: {
                         "amount": parseInt(claim.Larynx) * 1000,
                         "precision": 3,
-                        "token": "DUAT"
+                        "token": "DUAT",
                     }
                },//v[10],
                 poweredUp: v[1],
@@ -1780,6 +1780,7 @@ exports.user = (req, res, next) => {
             }, null, 3))
             })
     else {
+        console.log('else')
                 res.send(JSON.stringify({
                 balance: v[0],
                 claim: v[9],
@@ -1808,7 +1809,7 @@ exports.user = (req, res, next) => {
             console.log(err)
         })
     }
-    
+
 exports.blog = (req, res, next) => {
     let un = req.params.un
     res.setHeader('Content-Type', 'application/json')
