@@ -1,0 +1,44 @@
+version: '3'
+services:
+  ipfs:
+    image: ipfs/go-ipfs:latest
+    restart: unless-stopped
+    ports:
+      - 4001:4001
+      - 8080:8080
+      - 5001:5001
+    volumes:
+      - ./staging_dir:/export
+      - ipfs:/data/ipfs
+  duat:
+    build: ./honeycomb_duat
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - ipfshost=ipfs
+      - ipfsprotocol=http
+      - ipfsport=5001
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    stdin_open: true
+    tty: true
+  dlux:
+    build: ./dlux_open_token
+    restart: unless-stopped
+    ports:
+      - "3001:3002"
+    environment:
+      - ipfshost=ipfs
+      - ipfsprotocol=http
+      - ipfsport=5001
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    stdin_open: true
+    tty: true
+volumes:
+  ipfs:

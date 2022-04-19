@@ -269,6 +269,7 @@ function startApp() {
   processor.on("claim", HR.claim);
   if (config.features.claimdrop) processor.on("drop_claim", HR.drop_claim);
   processor.on("node_delete", HR.node_delete);
+  processor.on("node_add", HR.node_add);
   processor.on("report", HR.report);
   processor.on("gov_down", HR.gov_down);
   processor.on("gov_up", HR.gov_up);
