@@ -170,7 +170,7 @@ exports.processor = processor;
 
 //Start Program Options
 //dynStart();
-startWith("QmUkYoNSivTCQEiFFwhgYKPkSoTMBTsGMW3jLLiyUafnje", true);
+startWith("", true);
 Watchdog.monitor();
 
 // API defs

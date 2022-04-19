@@ -49,7 +49,7 @@ module.exports = {
         domain: config.mainAPI,
         escrow: true,
         escrows: 0,
-        lastGood: 63631500, //genesisblock
+        lastGood: 63652700, //genesisblock
         marketingRate: 0,
         self: [config.leader],
         wins: 0,
@@ -117,9 +117,9 @@ module.exports = {
         inconceivable: 1,
       },
       active_threshold: 1,
-      memo_key: "STM5se9o2oZwY7ztpo2scyvf12RR41zaYa6rozBtetwfr1DmH1J5k",
+      memo_key: "STM7ENRy7UsJs328k8T2kAq7zzvLUysPnfbquSZxCfxmCYxLH9Fym",
       owner_key_auths: {
-        STM5Rp1fWQMS7tAPVqatg8B22faeJGcKkfsez3mgUwGZPE9aqWd6X: 1,
+        STM5HHex8aY5D9aPbh5QgwrNDEyUqKgRrd82vesCA1Pxsw75ar4PW: 1,
       },
       owner_threshold: 1,
       posting_account_auths: {
