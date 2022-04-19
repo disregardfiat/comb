@@ -1714,9 +1714,10 @@ exports.user = (req, res, next) => {
         incol = getPathNum(['col', un]), //collateral
         gp = getPathNum(['gov', un]),
         pup = getPathObj(['up', un]),
-        pdown = getPathObj(['down', un])
+        pdown = getPathObj(['down', un]),
+        drops = getPathObj(['snap', un])
     res.setHeader('Content-Type', 'application/json');
-    Promise.all([bal, pb, lp, contracts, incol, gp, pup, pdown, lg, cbal, claims])
+    Promise.all([bal, pb, lp, contracts, incol, gp, pup, pdown, lg, cbal, claims, drops])
         .then(function(v) {
             var arr = []
             for (var i in v[3]) {
@@ -1731,9 +1732,17 @@ exports.user = (req, res, next) => {
                 }
                 arr.push(c)
             }
+    if(typeof v[10] != 'number')fetch(`${config.snapcs}/api/snapshot?u=${un}`).then(r => r.json()).then(function(claim) {
             res.send(JSON.stringify({
                 balance: v[0],
                 claim: v[9],
+                drop: {
+                    availible: {
+                        "amount": parseInt(claim.Larynx) * 1000,
+                        "precision": 3,
+                        "token": "DUAT"
+                    }
+               },//v[10],
                 poweredUp: v[1],
                 granted: v[2],
                 granting: v[8],
@@ -1746,12 +1755,60 @@ exports.user = (req, res, next) => {
                 behind: RAM.behind,
                 VERSION
             }, null, 3))
+            }).catch(e=>{
+            res.send(JSON.stringify({
+                balance: v[0],
+                claim: v[9],
+                drop: {
+                    availible: {
+                        "amount": 0,
+                        "precision": 3,
+                        "token": "DUAT"
+                    }
+               },//v[10],
+                poweredUp: v[1],
+                granted: v[2],
+                granting: v[8],
+                heldCollateral: v[4],
+                contracts: arr,
+                up: v[6],
+                down: v[7],
+                gov: v[5],
+                node: config.username,
+                behind: RAM.behind,
+                VERSION
+            }, null, 3))
+            })
+    else {
+                res.send(JSON.stringify({
+                balance: v[0],
+                claim: v[9],
+                drop: {
+                    availible: {
+                        "amount": 0,
+                        "precision": 3,
+                        "token": "LARYNX"
+                    }
+               },//v[10],
+                poweredUp: v[1],
+                granted: v[2],
+                granting: v[8],
+                heldCollateral: v[4],
+                contracts: arr,
+                up: v[6],
+                down: v[7],
+                gov: v[5],
+                node: config.username,
+                behind: RAM.behind,
+                VERSION
+            }, null, 3))
+            }
         })
         .catch(function(err) {
             console.log(err)
         })
-}
-
+    }
+    
 exports.blog = (req, res, next) => {
     let un = req.params.un
     res.setHeader('Content-Type', 'application/json')
