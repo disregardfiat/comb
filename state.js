@@ -49,7 +49,7 @@ module.exports = {
         domain: config.mainAPI,
         escrow: true,
         escrows: 0,
-        lastGood: 63654300, //genesisblock
+        lastGood: 63654900, //genesisblock
         marketingRate: 0,
         self: config.leader,
         wins: 0,
@@ -86,7 +86,7 @@ module.exports = {
       p: "ragnarok-claim-tokens-update", //permlink
       r: "0", //royalty
       ra: "", //royalty account
-      s: "QmPohNMMe4Rxmw3SQ1WvbiXAdgtuoM3VfN355CoKAJBn4G", //nft script
+      s: "QmPyXBQ4iAdz8ufH5o6gDjxbzAKVNK15p4naFa5G3F5nwM", //nft script
       t: 0, //type
       u: "", //uids
     },

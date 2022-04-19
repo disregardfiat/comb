@@ -25,7 +25,7 @@ function compile (message, display) {
               { telegram: "https://t.me/ragnarok_hive" },
               { hive: "https://peakd.com/@ragnarok.game" },
               { community: "https://peakd.com/c/hive-100039" },
-              {},
+              { website: "https://ragnaroknft.quest"},
             ],
           },
         };
