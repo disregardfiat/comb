@@ -18,7 +18,7 @@ services:
       - ./staging_dir:/export
       # - ./data_dir:/data/ipfs
       - ipfs:/data/ipfs
-  honeycomb:
+  duat:
     # depends_on:
     #   - ipfs
     build: .
