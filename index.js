@@ -227,7 +227,7 @@ if (config.features.pob) {
   api.get("/posts/:author/:permlink", API.PostAuthorPermlink);
   api.get("/posts", API.posts); //votable posts
 }
-if (config.features.state) {
+if (config.mode == 'verbose') {
   api.get("/state", API.state); //Do not recommend having a state dump in a production API
   api.get("/pending", API.pending); // The transaction signer now can sign multiple actions per block and this is nearly always empty, still good for troubleshooting
   // Some HIVE APi is wrapped here to support a stateless frontend built on the cheap with dreamweaver

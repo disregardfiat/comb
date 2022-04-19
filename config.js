@@ -80,7 +80,7 @@ const features = {
     inflation: false,
     dex: true, //dex
     nft: true, //nfts
-    state: false, //api dumps
+    state: true, //api dumps
     claimdrop: true //claim drops
 }
 
