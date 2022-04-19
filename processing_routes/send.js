@@ -1,6 +1,6 @@
 const config = require('./../config')
 const { store } = require("./../index");
-const { getPathNum } = require("./../getPathObj");
+const { getPathNum, getPathObj } = require("./../getPathObj");
 const { postToDiscord } = require('./../discord');
 const { updatePromote } = require('./../edb');
 const fetch = require("node-fetch");
