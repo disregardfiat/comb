@@ -1,5 +1,5 @@
 const config = require("./config");
-const VERSION = "v1.0.1r"; //Did you change the package version?
+const VERSION = "v1.0.1"; //Did you change the package version?
 exports.VERSION = VERSION;
 exports.exit = exit;
 exports.processor = processor;
@@ -665,7 +665,7 @@ function startApp() {
             Promise.all(promises).then(() => resolve(pc));
           });
         }
-        if (num % 100 === 1 && block.root) {
+        if (num % 100 === 1 && !block.root) {
           block.root = "pending";
           block.chain = [];
           block.ops = [];
@@ -898,13 +898,6 @@ function startWith(hash, second) {
                 if (!e && (second || data[0] > API.RAM.head - 325)) {
                   if (hash) {
                     var cleanState = data[1];
-                    delete cleanState.contracts.lobes
-                      .DUATQmTFLSsMoiWFUpkMUyctCqUup8RU7BXkR4JX5bcWP2Dwz9;
-                    cleanState.dex.hive.sellBook =
-                      "0.001000_DUATQmSimw5nJRBtKRG7VLxx8YZsH5k7c5QVSsJQhuz91WBbzM,1.000000_DUATQmRca1R333M25kmFD8rd9LRtCKTsKqCVMGuAuTMqZUTM2j";
-                    delete cleanState.dex.hive.sellOrders
-                      ['NaN:DUATQmTFLSsMoiWFUpkMUyctCqUup8RU7BXkR4JX5bcWP2Dwz9']
-                    cleanState.balances.lobes += 1000
                     store.put([], cleanState, function (err) {
                       if (err) {
                         console.log("errr", err);
