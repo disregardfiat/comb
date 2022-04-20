@@ -1,6 +1,6 @@
 {
     "name": "duat",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A Honeycomb for Hive Layer 2",
     "main": "index.js",
     "scripts": {

@@ -271,27 +271,33 @@ exports.dex_sell = (json, from, active, pc) => {
                   ? parseInt(parseInt(remaining) * parseFloat(stats.dex_fee))
                   : parseInt(parseInt(remaining) * 0.005),
               hours = 720;
-            contract = {
-              txid,
-              from: from,
-              hive: 0,
-              hbd: 0,
-              fee: cfee,
-              amount: remaining,
-              rate: crate,
-              block: json.block_num,
-              type: `${order.pair}:sell`,
-              hive_id: json.transaction_id,
-            };
-            contract[order.pair] = parseInt(remaining * parseFloat(crate));
-            dex.sellBook = DEX.insert(txid, crate, dex.sellBook, "sell");
-            path = chronAssign(expBlock, {
-              block: expBlock,
-              op: "expire",
-              from,
-              txid,
-            });
-            remaining = 0;
+            if(crate > 0){
+              contract = {
+                txid,
+                from: from,
+                hive: 0,
+                hbd: 0,
+                fee: cfee,
+                amount: remaining,
+                rate: crate,
+                block: json.block_num,
+                type: `${order.pair}:sell`,
+                hive_id: json.transaction_id,
+              };
+              contract[order.pair] = parseInt(remaining * parseFloat(crate));
+              dex.sellBook = DEX.insert(txid, crate, dex.sellBook, "sell");
+              path = chronAssign(expBlock, {
+                block: expBlock,
+                op: "expire",
+                from,
+                txid,
+              });
+              remaining = 0;
+            }
+            else {
+              bal += remaining;
+              remaining = 0
+            }
           }
           i++;
         }

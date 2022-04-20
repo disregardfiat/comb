@@ -103,7 +103,9 @@ exports.drop_claim = (json, from, active, pc) => {
             fetch(
               `${t == 0 ? config.snapcs : config.snapss}/api/snapshot?u=${from}`
             )
-              .then((res) => res.json())
+              .then((res) => {
+                res.json()
+              })
               .then((snap) => {
                 //{"hiveCurrent": 743.805, "hiveSnap": 743.805, "vestCurrent": 3832862.583523, "vestSnap": 3470785.995649, "hivePowerSnap": 1879.34242911609, "Larynx": 2623.14742911609, "snapshotBlock": 60714039, "snapshotTimestamp": "2022-01-07T08:00:00", "username": "disregardfiat"}
                 trak = parseInt(snap.Larynx) * 1000;
@@ -134,9 +136,10 @@ exports.drop_claim = (json, from, active, pc) => {
                 store.batch(ops, pc);
               })
               .catch((e) => {
-                if (config.snapss) {
-                  fetchSnap(1);
-                  return;
+                console.log(e)
+                if (config.snapss && t == 0) {
+                  fetchSnap(1)
+                  return
                 }
                 trak = 0;
                 ops.push({ type: "put", path: ["snap", from], data: trak });

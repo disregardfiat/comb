@@ -17,7 +17,7 @@ const pinurl = ENV.pinurl || '';
 const status = ENV.status || true
 const dbcs = ENV.DATABASE_URL || '';
 const snapcs = ENV.SNAPBASE_URL || "http://65.108.66.120:8002"; // get a public facing snapshot server
-const snapss = ENV.SNAPBASE_URLB || "http://96.46.48.108:8002"; ; // get a public facing snapshot server
+const snapss = ENV.SNAPBASE_URLB || "https://api.v4v.app"; ; // get a public facing snapshot server
 const history = ENV.history || 3600
 const stream = ENV.stream || 'irreversible'
 const mode = ENV.mode || 'normal'
@@ -113,6 +113,7 @@ const featuresModel = {
   govdn_B: true,
   node: {
     id: "node_add",
+    enabled: true,
     opts: [
       {
         S: "Domain",
@@ -152,7 +153,160 @@ const featuresModel = {
   },
   nft: [
     {
+      id: "ft_sell",
+      enabled: true,
+      props: [
+        {
+          name: "set",
+          type: "string",
+          help: `Set the FT to buy`,
+        },
+        {
+          name: "uid",
+          type: "string",
+          help: `UID of the FT to buy`,
+        },
+        {
+          name: "bid_amount",
+          type: "number",
+          help: `milli${TOKEN}`,
+        },
+      ],
+    },
+    {
+      id: "ft_buy",
+      enabled: true,
+      props: [
+        {
+          name: "set",
+          type: "string",
+          help: `Set the FT to buy`,
+        },
+        {
+          name: "uid",
+          type: "string",
+          help: `UID of the FT to buy`,
+        },
+      ],
+    },
+    {
+      id: "nft_sell_cancel",
+      enabled: true,
+      props: [
+        {
+          name: "set",
+          type: "string",
+          help: `Set the FT to cancel sell`,
+        },
+        {
+          name: "uid",
+          type: "string",
+          help: `UID of the FT to cancel sell`,
+        },
+      ],
+    },
+    {
+      id: "ft_sell_cancel",
+      enabled: true,
+      props: [
+        {
+          name: "set",
+          type: "string",
+          help: `Set the FT to cancel sell`,
+        },
+        {
+          name: "uid",
+          type: "string",
+          help: `UID of the FT to cancel sell`,
+        },
+      ],
+    },
+    {
+      id: "ft_auction",
+      enabled: true,
+      props: [
+        {
+          name: "set",
+          type: "string",
+          help: `Set the NFT to be auctioned`,
+        },
+        {
+          name: "uid",
+          type: "string",
+          help: `UID of the NFT to be auctioned`,
+        },
+        {
+          name: "price",
+          type: "number",
+          help: `milliTYPE`,
+        },
+        {
+          name: "type",
+          type: "string",
+          help: `HIVE or HBD`,
+        },
+        {
+          name: "time",
+          type: "number",
+          help: `Number of Days, 7 Max.`,
+        },
+      ],
+    },
+    {
+      id: "ft_bid",
+      enabled: true,
+      props: [
+        {
+          name: "set",
+          type: "string",
+          help: `Set the NFT to be bid on`,
+        },
+        {
+          name: "uid",
+          type: "string",
+          help: `UID of the NFT to be bid on`,
+        },
+        {
+          name: "bid_amount",
+          type: "number",
+          help: `milli${TOKEN}`,
+        },
+      ],
+    },
+    {
+      id: "nft_hauction",
+      enabled: false,
+      props: [
+        {
+          name: "set",
+          type: "string",
+          help: `Set the NFT to be auctioned`,
+        },
+        {
+          name: "uid",
+          type: "string",
+          help: `UID of the NFT to be auctioned`,
+        },
+        {
+          name: "price",
+          type: "number",
+          help: `milliTYPE`,
+        },
+        {
+          name: "type",
+          type: "string",
+          help: `HIVE or HBD`,
+        },
+        {
+          name: "time",
+          type: "number",
+          help: `Number of Days, 7 Max.`,
+        },
+      ],
+    },
+    {
       id: "fth_buy",
+      enabled: true,
       props: [
         {
           name: "amount",
@@ -176,8 +330,61 @@ const featuresModel = {
         },
       ],
     },
-
   ],
+  /*
+processor.on("send", HR.send);
+  processor.on("claim", HR.claim);
+  if (config.features.claimdrop) processor.on("drop_claim", HR.drop_claim);
+  processor.on("node_delete", HR.node_delete);
+  processor.on("gov_down", HR.gov_down);
+  processor.on("gov_up", HR.gov_up);
+  processor.onOperation("comment", HR.comment);
+  processor.on("nomention", HR.nomention);
+  if (config.features.pob) {
+    processor.on("power_up", HR.power_up); // power up tokens for vote power in layer 2 token proof of brain
+    processor.on("power_down", HR.power_down);
+    processor.on("power_grant", HR.power_grant);
+    processor.on("vote_content", HR.vote_content);
+    processor.onOperation("vote", HR.vote); //layer 2 voting
+    processor.onOperation(
+      "delegate_vesting_shares",
+      HR.delegate_vesting_shares
+    );
+    processor.onOperation("comment_options", HR.comment_options);
+    processor.on("cjv", HR.cjv);
+    processor.on("cert", HR.cert); // json.cert is an open ended hope to interact with executable posts... unexplored
+  }
+  if (config.features.dex) {
+    processor.on("dex_sell", HR.dex_sell);
+    processor.on("dex_clear", HR.dex_clear);
+  }
+  if (config.features.dex || config.features.nft || config.features.ico) {
+    processor.onOperation("transfer", HR.transfer);
+  }
+  if (config.features.nft) {
+    processor.on("ft_escrow_cancel", HR.ft_escrow_cancel);
+    processor.on("ft_escrow_complete", HR.ft_escrow_complete);
+    processor.on("ft_escrow", HR.ft_escrow);
+    processor.on("fts_sell_h", HR.fts_sell_h);
+    processor.on("fts_sell_hcancel", HR.fts_sell_hcancel);
+    processor.on("nft_buy", HR.nft_buy);
+    processor.on("nft_sell", HR.nft_sell);
+    processor.on("ft_transfer", HR.ft_transfer);
+    processor.on("ft_airdrop", HR.ft_airdrop);
+    processor.on("nft_transfer", HR.nft_transfer);
+    processor.on("nft_auction", HR.nft_auction);
+    processor.on("nft_bid", HR.nft_bid);
+    processor.on("nft_transfer_cancel", HR.nft_transfer_cancel);
+    processor.on("nft_reserve_transfer", HR.nft_reserve_transfer);
+    processor.on("nft_reserve_complete", HR.nft_reserve_complete);
+    //processor.on("nft_define", HR.nft_define);
+    //processor.on("nft_add_roy", HR.nft_add_roy);
+    //processor.on("nft_div", HR.nft_div);
+    //processor.on("nft_define_delete", HR.nft_define_delete);
+    processor.on("nft_melt", HR.nft_delete);
+    //processor.on("nft_mint", HR.nft_mint); //Minting will be in a future release.
+    //processor.on("nft_pfp", HR.nft_pfp);
+  */
 };
 const adverts = [
     'https://camo.githubusercontent.com/954558e3ca2d68e0034cae13663d9807dcce3fcf/68747470733a2f2f697066732e627573792e6f72672f697066732f516d64354b78395548366a666e5a6748724a583339744172474e6b514253376359465032357a3467467132576f50'
