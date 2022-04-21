@@ -260,7 +260,6 @@ exports.dex_sell = (json, from, active, pc) => {
               }
             }
           } else {
-            console.log("else");
             let txid = config.TOKEN + hashThis(from + json.transaction_id),
               crate =
                 typeof parseFloat(order.rate) == "number"
@@ -286,12 +285,12 @@ exports.dex_sell = (json, from, active, pc) => {
               };
               contract[order.pair] = parseInt(remaining * parseFloat(crate));
               dex.sellBook = DEX.insert(txid, crate, dex.sellBook, "sell");
-              path = chronAssign(expBlock, {
+              path = [expBlock, {
                 block: expBlock,
                 op: "expire",
                 from,
                 txid,
-              });
+              }]
               remaining = 0;
             }
             else {
@@ -314,10 +313,6 @@ exports.dex_sell = (json, from, active, pc) => {
           bal += addops[from];
           delete addops[from];
         }
-        var waitfor = [add("rn", fee)];
-        for (var to in addops) {
-          waitfor.push(add(to, addops[to]));
-        }
         const msg = `@${from}| Sell order confirmed.`;
         if (config.hookurl || config.status)
           postToDiscord(msg, `${json.block_num}:${json.transaction_id}`);
@@ -334,43 +329,60 @@ exports.dex_sell = (json, from, active, pc) => {
             path: ["dex", order.pair, "his"],
             data: his,
           });
-        if (path) {
-          Promise.all([path, ...waitfor]).then((expPath) => {
-            contract.expire_path = expPath[0];
-            ops.push({
-              type: "put",
-              path: ["contracts", from, contract.txid],
-              data: contract,
-            });
-            if (dex.sellOrders) {
-              dex.sellOrders[`${contract.rate}:${contract.txid}`] = contract;
-            } else {
-              dex.sellOrders = {
-                [`${contract.rate}:${contract.txid}`]: contract,
-              };
-            }
-            let msg = `@${from} is selling ${parseFloat(
-              parseInt(contract.amount) / 1000
-            ).toFixed(3)} ${config.TOKEN} for ${parseFloat(
-              parseInt(contract[order.pair]) / 1000
-            ).toFixed(3)} ${order.pair.toUpperCase()}(${contract.rate}:${
-              contract.txid
-            })`;
-            ops.push({
-              type: "put",
-              path: ["feed", `${json.block_num}:${json.transaction_id}.${i}`],
-              data: msg,
-            });
-            if (process.env.npm_lifecycle_event == "test") pc[2] = ops;
-            store.batch(ops, pc);
-          });
-        } else {
-          Promise.all([...waitfor])
-            .then((nada) => {
+        add("rn", fee)
+        .then(empty =>{
+          addop(0,addops)
+        })
+        function addop(i, a){
+          var keys = Object.keys(a)
+          if(i < keys.length){
+            add(keys[i], a[keys[i]])
+            .then(empty =>{
+              if(keys.length > i + 1){
+                addop(i++, a);
+              } else {
+                finish();
+              }
+            })
+          } else {
+            finish();
+          }
+        }
+        function finish(){
+          if (path) {
+            chronAssign(path[0],path[1]).then(expPath => {
+              contract.expire_path = expPath;
+              ops.push({
+                type: "put",
+                path: ["contracts", from, contract.txid],
+                data: contract,
+              });
+              if (dex.sellOrders) {
+                dex.sellOrders[`${contract.rate}:${contract.txid}`] = contract;
+              } else {
+                dex.sellOrders = {
+                  [`${contract.rate}:${contract.txid}`]: contract,
+                };
+              }
+              let msg = `@${from} is selling ${parseFloat(
+                parseInt(contract.amount) / 1000
+              ).toFixed(3)} ${config.TOKEN} for ${parseFloat(
+                parseInt(contract[order.pair]) / 1000
+              ).toFixed(3)} ${order.pair.toUpperCase()}(${contract.rate}:${
+                contract.txid
+              })`;
+              ops.push({
+                type: "put",
+                path: ["feed", `${json.block_num}:${json.transaction_id}.${i}`],
+                data: msg,
+              });
               if (process.env.npm_lifecycle_event == "test") pc[2] = ops;
               store.batch(ops, pc);
-            })
-            .catch((e) => console.log("error waitfor"));
+            });
+          } else {
+            if (process.env.npm_lifecycle_event == "test") pc[2] = ops;
+            store.batch(ops, pc);
+          }
         }
       } else {
         const msg = `@${from}| tried to sell ${config.TOKEN} but sent an invalid order.`;

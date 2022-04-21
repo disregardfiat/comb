@@ -169,7 +169,7 @@ exports.tally = (num, plasma, isStreaming) => {
                             MultiSigCollateral += collateral[i]
                         }
                         stats.multiSigCollateral = MultiSigCollateral
-                        stats.safetyLimit = low_sum
+                        stats.safetyLimit = highest_low_sum;
                         stats.hashLastIBlock = stats.lastBlock;
                         stats.lastBlock = consensus;
                         for (var node in nodes) {
