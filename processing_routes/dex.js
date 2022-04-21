@@ -339,7 +339,7 @@ exports.dex_sell = (json, from, active, pc) => {
             add(keys[i], a[keys[i]])
             .then(empty =>{
               if(keys.length > i + 1){
-                addop(i++, a);
+                addop(i + 1, a);
               } else {
                 finish();
               }
