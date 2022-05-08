@@ -1358,7 +1358,7 @@ json = {
 }
 */
 exports.fth_buy = function(json, from, active, pc) {
-    let Pitem = getPathObj(["lth", `${json.set}L${json.item}`]),
+    let Pitem = getPathObj(["lth", `${json.set}:${json.item}`]),
         Ptoken = getPathNum(["balances", from])
     Promise.all([Pitem, Ptoken]).then((mem) => {
         let listing = mem[0],

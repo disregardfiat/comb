@@ -691,7 +691,7 @@ exports.runners = (req, res, next) => {
             result,
             runners,
             latest: [
-                {api: "https://spkinstant.hivehoneycomb.com"}
+                {api: "https://duat.hivehoneycomb.com"}
             ],
             node: config.username,
             behind: RAM.behind,
@@ -1780,7 +1780,6 @@ exports.user = (req, res, next) => {
             }, null, 3))
             })
     else {
-        console.log('else')
                 res.send(JSON.stringify({
                 balance: v[0],
                 claim: v[9],
