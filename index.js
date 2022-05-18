@@ -1,5 +1,5 @@
 const config = require('./config');
-const VERSION = 'v1.2.0'
+const VERSION = 'v1.2.7'
 exports.VERSION = VERSION
 exports.exit = exit;
 exports.processor = processor;
@@ -92,16 +92,17 @@ let TXID = {
         return TXID.blocknumber
     },
     blocknumber: 0,
+    saveNumber: 0,
     streaming: false,
     current: function(){TXID.streaming = true},
-    reset: function(){TXID.streaming = false, TXID.blocknumber = 0, status = {
+    reset: function(){TXID.streaming = false, TXID.blocknumber = 0, saveNumber = 0, status = {
     cleaner: [],
 }},
 }
 exports.TXID = TXID
 const API = require('./routes/api');
 const HR = require('./processing_routes/index')
-const { Base64, NFT, Chron } = require('./helpers');
+const { NFT, Chron, Watchdog } = require('./helpers');
 const { release } = require('./processing_routes/dex')
 const { enforce } = require("./enforce");
 const { tally } = require("./tally");
@@ -112,8 +113,8 @@ const { dao, Liquidity } = require("./dao");
 const { recast } = require('./lil_ops')
 const hiveState = require('./processor');
 const { getPathObj, getPathNum, getPathSome } = require('./getPathObj');
-const { consolidate, sign, createAccount, updateAccount } = require('./msa');
-const { resolve } = require('path');
+const { consolidate, sign, osign, createAccount, updateAccount } = require('./msa');
+//const { resolve } = require('path');
 const api = express()
 var http = require('http').Server(api);
 var escrow = false;
@@ -122,19 +123,17 @@ exports.escrow = escrow;
 var startingBlock = config.starting_block
     //var current
     //exports.current = current
-const streamMode = args.mode || 'irreversible';
+const streamMode = config.stream || 'irreversible';
 console.log("Streaming using mode", streamMode);
 var processor;
 exports.processor = processor
-var live_dex = {}, //for feedback, unused currently
-    pa = []
-var recents = []
-    //HIVE API CODE
 
-    //Start Program Options   
-//startWith('QmaRAerHzwBbE5kxU5ntB755YnSX7w9LTEtC7Nidm7MjTv', true) //for testing and replaying 58859101
-dynStart(config.follow)
+//HIVE API CODE
 
+//Start Program Options   
+dynStart()
+//startWith('QmTE5LtzLUyhnb1UMxb1YRrdq8cPxdtqvfCBo7hEZeYwQs', true)
+Watchdog.monitor()
 
 // API defs
 api.use(API.https_redirect);
@@ -152,17 +151,6 @@ api.get('/runners', API.runners); //list of accounts that determine consensus...
 api.get('/queue', API.queue);
 api.get('/api/protocol', API.protocol);
 api.get('/api/status/:txid', API.status);
-if(config.features.state){
-    api.get('/state', API.state); //Do not recommend having a state dump in a production API
-    api.get('/pending', API.pending); // The transaction signer now can sign multiple actions per block and this is nearly always empty, still good for troubleshooting
-    // Some HIVE APi is wrapped here to support a stateless frontend built on the cheap with dreamweaver
-    // None of these functions are required for token functionality and should likely be removed from the community version
-    api.get('/api/:api_type/:api_call', API.hive_api);
-    api.get('/hapi/:api_type/:api_call', API.hive_api);
-    api.get('/getwrap', API.getwrap);
-    api.get('/getauthorpic/:un', API.getpic);
-    api.get('/getblog/:un', API.getblog);
-}
 if(config.features.dex){
     api.get('/dex', API.dex);
     api.get('/api/tickers', API.tickers);
@@ -201,6 +189,17 @@ if(config.features.pob){
     api.get('/posts/:author/:permlink', API.PostAuthorPermlink);
     api.get('/posts', API.posts); //votable posts
 }
+if(config.features.state){
+    api.get('/state', API.state); //Do not recommend having a state dump in a production API
+    api.get('/pending', API.pending); // The transaction signer now can sign multiple actions per block and this is nearly always empty, still good for troubleshooting
+    // Some HIVE APi is wrapped here to support a stateless frontend built on the cheap with dreamweaver
+    // None of these functions are required for token functionality and should likely be removed from the community version
+    api.get('/api/:api_type/:api_call', API.hive_api);
+    api.get('/hapi/:api_type/:api_call', API.hive_api);
+    api.get('/getwrap', API.getwrap);
+    api.get('/getauthorpic/:un', API.getpic);
+    api.get('/getblog/:un', API.getblog);
+}
 
 http.listen(config.port, function() {
     console.log(`${config.TOKEN} token API listening on port ${config.port}`);
@@ -212,6 +211,7 @@ if (config.rta && config.rtp) {
 
 //starts block processor after memory has been loaded
 function startApp() {
+    TXID.blocknumber = 0
     if(config.ipfshost == 'ipfs')ipfs.id(function (err, res) {
         if(err){}
         if(res)plasma.id = res.id
@@ -243,6 +243,7 @@ function startApp() {
         processor.on('dex_sell', HR.dex_sell);
         processor.on('dex_clear', HR.dex_clear);
         processor.on('sig_submit', HR.sig_submit); //dlux is for putting executable programs into IPFS... this is for additional accounts to sign the code as non-malicious
+        processor.on('osig_submit', HR.osig_submit);
     }
     if(config.features.dex || config.features.nft || config.features.ico){
         processor.onOperation('transfer', HR.transfer);
@@ -282,7 +283,9 @@ function startApp() {
     processor.onBlock(
         function (num, pc, prand, bh) {
             console.log(num)
-            TXID.clean(num)
+            if(num < TXID.blocknumber){
+                require('process').exit(2)
+            } else {TXID.clean(num)}
             return new Promise((resolve, reject) => {
                 let Pchron = getPathSome(['chrono'],{
                     gte: "" + num - 1,
@@ -292,13 +295,19 @@ function startApp() {
                     gte: "" + (num - 1000000),
                     lte: "" + (num - 100)
                 }) //resign mss
+                let Pmsso = getPathSome(['msso'],{
+                    gte: "" + (num - 1000000),
+                    lte: "" + (num - 100)
+                })
                 let Pmsa = getPathObj(['msa'])
                 let Pmso = getPathObj(['mso'])
-                Promise.all([Pchron, Pmss, Pmsa, Pmso]).then(mem => {
+                Promise.all([Pchron, Pmss, Pmsa, Pmso, Pmsso]).then(mem => {
                     var a = mem[0],
                         mss = mem[1], //resign mss
-                        msa = mem[2] //if length > 80... sign these
-                        mso = mem[3]
+                        msa = mem[2], //if length > 80... sign these
+                        mso = mem[3],
+                        msso = mem[4],	
+                        mso_keys = Object.keys(mso)
                     let chrops = {},
                         msa_keys = Object.keys(msa)
                         mso_keys = Object.keys(mso)
@@ -414,22 +423,35 @@ function startApp() {
                 function every(){
                     return new Promise((res, rej)=>{
                         let promises = [HR.margins()]
-                        if(num % 100 !== 50){
-                            if(mso_keys.length){
-                                promises.push(new Promise((res,rej)=>{
-                                    osig_submit(consolidate(num, plasma, bh, 'owner'))
-                                    .then(nodeOp => {
-                                        res('SAT')
-                                        NodeOps.unshift(nodeOp)
-                                    })
-                                    .catch(e => { rej(e) })
-                                }))
+                        if(num % 100 !== 50){	
+                            if(mso_keys.length){	
+                                promises.push(new Promise((res,rej)=>{	
+                                    osig_submit(osign(num, 'mso', mso_keys, bh))	
+                                    .then(nodeOp => {	
+                                        res('SAT')	
+                                        try{	
+                                            if(plasma.rep && JSON.parse(nodeOp[1][1].json).sig)NodeOps.unshift(nodeOp)	
+                                        }catch(e){}	
+                                    })	
+                                    .catch(e => { rej(e) })	
+                                }))	
+                            } else if(msso.length){	
+                                promises.push(new Promise((res,rej)=>{	
+                                    osig_submit(osign(num, 'msso', msso, bh))	
+                                    .then(nodeOp => {	
+                                        res('SAT')	
+                                        try {	
+                                            if(plasma.rep && JSON.parse(nodeOp[1][1].json).sig)NodeOps.unshift(nodeOp) //check to see if sig	
+                                        }catch(e){}	
+                                    })	
+                                    .catch(e => { rej(e) })	
+                                }))	
                             } else if(msa_keys.length > 80){
                                 promises.push(new Promise((res,rej)=>{
                                     sig_submit(consolidate(num, plasma, bh))
                                     .then(nodeOp => {
                                         res('SAT')
-                                        NodeOps.unshift(nodeOp)
+                                        if(plasma.rep)NodeOps.unshift(nodeOp)
                                     })
                                     .catch(e => { rej(e) })
                                 }))
@@ -458,11 +480,6 @@ function startApp() {
                                 });
                         }
                         if (num % 100 === 50) {
-                            setTimeout(function(a) {
-                                if(plasma.hashLastIBlock == a || plasma.hashSecIBlock == a){
-                                    exit(plasma.hashLastIBlock)
-                                }
-                            }, 620000, plasma.hashLastIBlock)
                             promises.push(new Promise((res,rej)=>{
                                 report(plasma, consolidate(num, plasma, bh))
                                 .then(nodeOp => {
@@ -472,7 +489,7 @@ function startApp() {
                                 .catch(e => { rej(e) })
                             }))
                         }
-                        if ((num - 20003) % 30240 === 0) { //time for daily magic
+                        if ((num - 18505) % 28800 === 0) { //time for daily magic
                             promises.push(dao(num))
                             block.prev_root = block.root
                             block.root = ''
@@ -494,9 +511,11 @@ function startApp() {
                         block.chain = []
                         block.ops = []
                         store.get([], function(err, obj) {
-                            const blockState = Buffer.from(stringify([num, obj]))
+                            const blockState = Buffer.from(stringify([num + 1, obj]))
+
                             ipfsSaveState(num, blockState, ipfs)
                                 .then(pla => {
+                                    TXID.saveNumber = pla.hashBlock
                                     block.root = pla.hashLastIBlock
                                     plasma.hashSecIBlock = plasma.hashLastIBlock
                                     plasma.hashLastIBlock = pla.hashLastIBlock
@@ -506,16 +525,9 @@ function startApp() {
 
                         })
                     } else if (num % 100 === 1) {
-                        const blockState = Buffer.from(stringify([num, block]))
-                            block.ops = []
-                            ipfsSaveState(num, blockState, ipfs)
-                                .then(pla => {
-                                    block.chain.push({hash: pla.hashLastIBlock, hive_block: num})
-                                    plasma.hashSecIBlock = plasma.hashLastIBlock
-                                    plasma.hashLastIBlock = pla.hashLastIBlock
-                                    plasma.hashBlock = pla.hashBlock
-                                })
-                                .catch(e => { console.log(e) })
+                        const blockState = Buffer.from(stringify([num + 1, block]))
+                        block.ops = []
+                        issc(num, blockState, null, 0, 0)
                     }
                     if (config.active && processor.isStreaming() ) {
                         store.get(['escrow', config.username], function(e, a) {
@@ -524,7 +536,7 @@ function startApp() {
                                     if (!plasma.pending[b]) {
                                         NodeOps.push([
                                             [0, 0],
-                                            a[b]
+                                            typeof a[b] == 'string' ? JSON.parse(a[b]) : a[b]
                                         ]);
                                         plasma.pending[b] = true
                                     }
@@ -603,14 +615,14 @@ function startApp() {
     }, 3000);
 }
 
-function exit(consensus) {
-    console.log(`Restarting with ${consensus}...`);
+function exit(consensus, reason) {
+    console.log(`Restarting with ${consensus}. Reason: ${reason}`);
 
-    processor.stop(function() {});
+    if(processor)processor.stop(function() {});
         if (consensus) {
             startWith(consensus, true)
         } else {
-            dynStart(config.leader)
+            dynStart(config.msaccount)
         }
 }
 
@@ -631,7 +643,7 @@ function waitfor(promises_array) {
 exports.waitfor = waitfor;
 
 //hopefully handling the HIVE garbage APIs
-function cycleAPI() {
+function cycleAPI(restart) {
     var c = 0
     for (i of config.clients) {
         if (config.clientURL == config.clients[i]) {
@@ -639,55 +651,62 @@ function cycleAPI() {
             break;
         }
     }
-    if (c == config.clients.length - 2) {
+    if (c == config.clients.length - 1) {
         c = -1
     }
     config.clientURL = config.clients[c + 1]
     console.log('Using APIURL: ', config.clientURL)
     client = new hive.Client(config.clientURL)
-    exit(plasma.hashLastIBlock)
+    if(restart)exit(plasma.hashLastIBlock, 'API Changed')
 }
 
 //pulls the latest activity of an account to find the last state put in by an account to dynamically start the node. 
 //this will include other accounts that are in the node network and the consensus state will be found if this is the wrong chain
 function dynStart(account) {
     API.start()
-    let accountToQuery = account || config.username
-    hiveClient.api.setOptions({ url: config.startURL });
-    console.log('Starting URL: ', config.startURL)
-    hiveClient.api.getAccountHistory(accountToQuery, -1, 100, ...walletOperationsBitmask, function(err, result) {
-        if (err) {
-            console.log('errr', err)
-            dynStart(config.leader)
-        } else {
-            hiveClient.api.setOptions({ url: config.clientURL });
-            let ebus = result.filter(tx => tx[1].op[1].id === `${config.prefix}report`)
-            for (i = ebus.length - 1; i >= 0; i--) {
-                if (JSON.parse(ebus[i][1].op[1].json).hash && parseInt(JSON.parse(ebus[i][1].op[1].json).block) > parseInt(config.override)) {
-                    recents.push(JSON.parse(ebus[i][1].op[1].json).hash)
-                }
-            }
-            if (recents.length) {
-                const mostRecent = recents.shift()
-                console.log({mostRecent})
-                if (recents.length === 0) {
-                    startWith(config.engineCrank)
-                } else {
-                    startWith(mostRecent)
-                }
-            } else {
-                startWith(config.engineCrank)
-                console.log('IPFS load Failed: Genesis or Backup Replay...')
-            }
+    const { Hive } = require('./hive')
+    Hive.getOwners(config.msaccount).then(oa =>{
+        console.log('Starting URL: ', config.startURL)
+        let consensus_init = {
+            accounts: oa,
+            reports: [],
+            hash: {},
+            start: false,
+            first: config.engineCrank
         }
-    });
+        for(i in oa){
+            consensus_init.reports.push(Hive.getRecentReport(oa[i][0], walletOperationsBitmask))
+        }
+        Promise.all(consensus_init.reports).then(r =>{
+            for(i = 0; i < r.length; i++){
+                if(!i)consensus_init.first = r[i][0]
+                if(consensus_init.hash[r[i][0]]){
+                    consensus_init.hash[r[i][0]]++
+                } else {
+                    consensus_init.hash[r[i][0]] = 1
+                }
+            }
+            for (var i in consensus_init.hash) {
+                if (consensus_init.hash[i] > consensus_init.reports.length/2) {
+                    console.log('Starting with: ', i)
+                    startWith(i, true)
+                    consensus_init.start = true
+                    break
+                }
+            }
+            if(!consensus_init.start){
+                console.log('Starting with: ', consensus_init.first)
+                startWith(consensus_init.first, false)
+            }
+        })
+    })
 }
 
 
 //pulls state from IPFS, loads it into memory, starts the block processor
 function startWith(hash, second) {
     console.log(`${hash} inserted`)
-    if (hash) {
+    if (hash && hash != 'pending') {
         console.log(`Attempting to start from IPFS save state ${hash}`);
         ipfspromise(hash).then(blockInfo=>{
             var blockinfo = JSON.parse(blockInfo);
@@ -714,22 +733,28 @@ function startWith(hash, second) {
                                     if (err) {
                                         console.log('errr',err)
                                     } else {
-                                        store.get(['stats', 'lastBlock'], function(error, returns) {
-                                            if (!error) {
-                                                console.log(`State Check:  ${returns}\nAccount: ${config.username}\nKey: ${config.active.substr(0,3)}...`)
-                                                let info = API.coincheck(cleanState)
-                                                console.log('check', info.check)
-                                                if (cleanState.stats.tokenSupply != info.supply) {
-                                                    console.log('check',info.info)
+                                        if(blockinfo[1].chain){
+                                            rundelta(blockinfo[1].chain, blockinfo[1].ops, blockinfo[0], blockinfo[1].prev_root)
+                                            .then(empty=>{
+                                                const blockState = Buffer.from(stringify([startingBlock, block]))
+                                                block.ops = []
+                                                issc(startingBlock, blockState, startApp, 0, 1)
+                                            store.get(['stats', 'lastBlock'], function(error, returns) {
+                                                if (!error) {
+                                                    console.log(`State Check:  ${returns}\nAccount: ${config.username}\nKey: ${config.active.substr(0,3)}...`)
+                                                    let info = API.coincheck(cleanState)
+                                                    console.log('check', info.check)
+                                                    if (cleanState.stats.tokenSupply != info.supply) {
+                                                        console.log('check',info.info)
+                                                    }
                                                 }
-                                            }
-                                        })
-                                        if(blockinfo[1].chain){rundelta(blockinfo[1].chain, blockinfo[1].ops, blockinfo[0], blockinfo[1].prev_root)
-                                        .then(empty=>{
-                                            startApp()
-                                            getPathNum(['balances', 'ra']).then(r=>console.log(r))})
+                                            })
+                                            })  
+
                                         .catch(e=>console.log('Failure of rundelta'))
                                         } else {
+                                            console.log('No Chain')
+                                            TXID.saveNumber = startingBlock
                                             startApp()
                                         }
                                     }
@@ -813,7 +838,7 @@ function startWith(hash, second) {
         })
         .catch(e=>{
             console.log('error in ipfs', e)
-            process.exit()
+            process.exit(4)
         })
     } else {
         startingBlock = config.starting_block
@@ -828,6 +853,7 @@ function startWith(hash, second) {
                             console.log(`State Check:  ${returns}\nAccount: ${config.username}\nKey: ${config.active.substr(0,3)}...`)
                         }
                     })
+                    TXID.saveNumber = config.starting_block
                     startApp()
                 }
             })
@@ -847,20 +873,40 @@ function rundelta(arr, ops, sb, pr){
             delta(values)
             function delta(a){
                 if(a.length){
-                    const b = JSON.parse(a.shift())
-                    startingBlock = b[0]
-                    delsfirst(b[1].ops).then(emp=>store.batch(unwrapOps(b[1].ops)[1], [delta, reject, a ? a : []]))
+                    console.log('Blocks to apply:', a.length)
+                    var b
+                    try {
+                        b = JSON.parse(a.shift())
+                        block.ops = []
+                        block.chain = b[1].chain
+                        block.prev_root = pr
+                        startingBlock = b[0]
+                        TXID.saveNumber = b[0]
+                        unwrapOps(b[1].ops).then(last=>{
+                            if(last.length){
+                            store.batch(last, [delta, reject, a ? a : []])
+                        } else delta(a ? a : [])
+                        })
+                    } catch(e) {
+                        resolve([])
+                    }
                 } else {
+                    console.log('Current Block')
                     block.ops = []
                     block.chain = arr
                     block.prev_root = pr
                     startingBlock = sb
-                    delsfirst(ops).then(emp=>store.batch(unwrapOps(ops)[1], [resolve, reject, a ? a : []]))
-                }
-                function delsfirst(b){
-                    return new Promise((resolv, rejec) => {
-                        store.batch(unwrapOps(b)[0], [resolv, rejec, 'OK'])
+                    TXID.saveNumber = sb
+
+                    unwrapOps(ops).then(last=>{
+                    if(last.length){
+                        store.batch(last, [reorderOps, reject, a ? a : []])
+                    } else reorderOps()
                     })
+                }
+                function reorderOps(){
+                    block.ops = ops
+                    resolve([])
                 }
             }
         })
@@ -869,28 +915,61 @@ function rundelta(arr, ops, sb, pr){
 }
 
 function unwrapOps(arr){
-    var c = [],
+    return new Promise((resolve, reject) => {
+        var d = []
+        if(arr[arr.length - 1] !== 'W')arr.push('W')
+
+        if(arr.length)write(0)
+        else resolve([])
+        function write (int){
         d = []
-    for(var i = 0; i < arr.length; i++){
-        const e = JSON.parse(arr[i])
-        if (e.type != 'del')c.push(e)
-        else d.push(e)
-    }
-    return [d,c]
+        for(var i = int; i < arr.length; i++){
+                var e = arr[i]
+                try {
+                    e = JSON.parse(e)
+                } catch(e){e = arr[i]}
+                if (e == 'W' && i == arr.length - 1){
+                    store.batch(d, [resolve, null, i+1])
+                    break
+                } else if (e == 'W'){
+                    store.batch(d, [write, null, i+1])
+                    break
+                } else d.push(e)
+            }
+        }
+})
 }
 
 function ipfspromise(hash){
     return new Promise((resolve, reject) => {
         ipfs.cat(hash, function(err, data) {
             if (err) {
-                console.log(err)
+                //console.log(err)
             } else {
                 resolve(data)
             }
         })
-        fetch(`https://ipfs.infura.io/ipfs/${hash}`)
+        fetch(`https://ipfs.io/ipfs/${hash}`)
         .then(r=>r.text())
         .then(res => {resolve(res)})
-        .catch(e=>console.log(e))
+        .catch(e=>{fetch(`https://ipfs.infura.io/ipfs/${hash}`)
+        .then(r=>r.text())
+        .then(res => {resolve(res)})
+        .catch(e=>reject(e))})
     })
+}
+
+function issc(n,b,i,r,a){
+    ipfsSaveState(n,b,i,r,a)
+    .then(pla => {
+        TXID.saveNumber = pla.hashBlock
+        block.chain.push({hash: pla.hashLastIBlock, hive_block: n - a})
+        plasma.hashSecIBlock = plasma.hashLastIBlock
+        plasma.hashLastIBlock = pla.hashLastIBlock
+        plasma.hashBlock = pla.hashBlock
+        if(block.chain.length > 2 && block.chain[block.chain.length - 2].hive_block < block.chain[block.chain.length - 1].hive_block - 100){
+            exit(block.chain[block.chain.length - 2].hash, 'Chain Out Of Order')
+        } else if (typeof i == 'function'){console.log('Requesting Blocks from:', config.clientURL);i()}
+    })
+    .catch(e => { if(r<2){console.log('Retrying IPFS Save');setTimeout(()=>{issc(n,b,i,r++, a)}, 1000)}else{exit(plasma.hashLastIBlock, 'IPFS Save Failed')} })
 }

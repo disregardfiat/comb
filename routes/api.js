@@ -392,9 +392,8 @@ exports.dex = (req, res, next) => {
     var Pdex = getPathObj(['dex'])
     var Pstats = getPathObj(['stats'])
     var Pico = getPathObj(['balances', 'ri'])
-    var PQueue = getPathObj(['queue'])
     res.setHeader('Content-Type', 'application/json');
-    Promise.all([Pdex, Pstats, Pico, PQueue])
+    Promise.all([Pdex, Pstats, Pico])
         .then(function(v) {
             var markets = v[0]
             markets.hive.sells = []
@@ -552,7 +551,6 @@ exports.dex = (req, res, next) => {
             res.send(JSON.stringify({
                 markets,
                 stats: v[1],
-                queue: v[3],
                 node: config.username,
                 behind: RAM.behind,
                 VERSION
@@ -683,9 +681,18 @@ exports.mirrors = (req, res, next) => {
 exports.runners = (req, res, next) => {
     res.setHeader('Content-Type', 'application/json')
     store.get(['runners'], function(err, obj) {
-        var runners = obj
+        var runners = obj, result = []
+        for (var a in runners) {
+            var node = runners[a]
+            node.account = a
+            result.push(node)
+        }
         res.send(JSON.stringify({
+            result,
             runners,
+            latest: [
+                {api: "https://spkinstant.hivehoneycomb.com"}
+            ],
             node: config.username,
             behind: RAM.behind,
             VERSION
@@ -766,6 +773,8 @@ exports.protocol = (req, res, next) => {
             node: config.username,
             multisig: config.msaccount,
             jsontoken: config.jsonTokenName,
+            memoKey: config.msPubMemo,
+            features: config.featuresModel,
             behind: RAM.behind,
             info: '/markets will return node information and published APIs for the consensus nodes, you may check these other APIs to ensure that the information in the API is in consensus.\nThe prefix is used to address this tokens architecture built on Hive.',
             VERSION
@@ -1710,18 +1719,21 @@ exports.user = (req, res, next) => {
     Promise.all([bal, pb, lp, contracts, incol, gp, pup, pdown, lg, cbal, claims])
         .then(function(v) {
             var arr = []
-            for (var i in v[3]) {arr.push(v[3][i])}
+            for (var i in v[3]) {
+                var c = v[3][i]
+                if(c.partial){
+                    c.partials = []
+                    for(var p in c.partial){
+                        var j = c.partial[p]
+                        j.txid = p
+                        c.partials.push(j)
+                    }
+                }
+                arr.push(c)
+            }
             res.send(JSON.stringify({
                 balance: v[0],
                 claim: v[9],
-                drop: {
-                    availible: {
-                        "amount": 10000,
-                        "precision": 3,
-                        "token": "LARYNX"
-                    },
-                    last_claim: 12
-               },//v[10],
                 poweredUp: v[1],
                 granted: v[2],
                 granting: v[8],
@@ -1833,6 +1845,9 @@ exports.hive_api = (req, res, next) => {
             break;
         case 'get_content_replies':
             params = [params.author, params.permlink];
+            break;
+        case 'get_dynamic_global_properties':
+            params = []
             break;
         default:
     }

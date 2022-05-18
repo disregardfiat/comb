@@ -40,8 +40,9 @@ function dao(num) {
             Pfeed = getPathObj(['feed']),
             Ppaid = getPathObj(['paid']),
             Prnfts = getPathObj(['rnfts']);
+            Pgov = getPathObj(['gov']);
             Pdistro = Distro()
-        Promise.all([Pnews, Pbals, Prunners, Pnodes, Pstats, Pdelegations, Pico, Pdex, Pbr, Ppbal, Pnomen, Pposts, Pfeed, Ppaid, Prnfts, Pdistro, Pcbals]).then(function(v) {
+        Promise.all([Pnews, Pbals, Prunners, Pnodes, Pstats, Pdelegations, Pico, Pdex, Pbr, Ppbal, Pnomen, Pposts, Pfeed, Ppaid, Prnfts, Pdistro, Pcbals, Pgov]).then(function(v) {
             daops.push({ type: 'del', path: ['postQueue'] });
             daops.push({ type: 'del', path: ['br'] });
             daops.push({ type: 'del', path: ['rolling'] });
@@ -50,6 +51,7 @@ function dao(num) {
             const header = post + news;
             var bals = v[1],
                 cbals = v[16],
+                gov = v[17],
                 runners = v[2],
                 mnode = v[3],
                 stats = v[4],
@@ -112,7 +114,7 @@ function dao(num) {
             }
             stats.marketingRate = parseInt(b / i);
             stats.nodeRate = parseInt(j / i);
-            post = `![${config.TOKEN} Advert](${config.adverts[num.toString().split('').reduce((a, c) => parseInt(a) + c, 0) % config.adverts.length - 1]})\n#### Daily Accounting\n`;
+            post = `![${config.TOKEN} Advert](${config.adverts[num.toString().split('').reduce((a, c) => parseInt(a) + c, 0) % config.adverts.length]})\n#### Daily Accounting\n`;
             post = post + `Total Supply: ${parseFloat(parseInt(stats.tokenSupply) / 1000).toFixed(3)} ${config.TOKEN}\n* ${parseFloat(parseInt(stats.tokenSupply - powBal - (bals.ra + bals.rc + bals.rd + bals.ri + bals.rn + bals.rm)) / 1000).toFixed(3)} ${config.TOKEN} liquid\n`;
             post = post + `* ${parseFloat(parseInt(powBal) / 1000).toFixed(3)} ${config.TOKEN} Powered up for Voting\n`;
             post = post + `* ${parseFloat(parseInt(bals.ra + bals.rc + bals.rd + bals.ri + bals.rn + bals.rm) / 1000).toFixed(3)} ${config.TOKEN} in distribution accounts\n`;
@@ -131,7 +133,6 @@ function dao(num) {
             
             i = 0, j = 0;
             if(bals.rm)post = post + `${parseFloat(parseInt(bals.rm) / 1000).toFixed(3)} ${config.TOKEN} is in the Marketing Allocation.\n##### Node Rewards for Elected Reports and Escrow Transfers\n`;
-            console.log(num + `:${bals.rm} is availible in the marketing account\n${bals.rn} ${config.TOKEN} set asside to distribute to nodes`);
             for (var node in mnode) { //tally the wins
                 j = j + parseInt(mnode[node].wins);
             }
@@ -144,6 +145,41 @@ function dao(num) {
                     return '@';
                 }
             }
+            var newOwners = {}, dexfeea = 0, dexfeed = 1, dexmaxa = 0, dexslopea = 0, dexmaxd = 1, dexsloped = 1
+            if(j){
+                for (var node in mnode) { //and pay them
+                    const wins = mnode[node].wins
+                    newOwners[node] = {wins}
+                    mnode[node].tw = mnode[node].tw > 0 ? mnode[node].tw + wins : wins
+                    mnode[node].wins = 0
+                    mnode[node].ty = mnode[node].ty > 0 ? mnode[node].ty + mnode[node].yays : mnode[node].yays
+                    mnode[node].yays = 0
+                    const gbal = gov[node] || 0
+                    mnode[node].g = gbal
+                    const feevote = mnode[node].bidRate > 1000 || mnode[node].bidRate < 0 || typeof mnode[node].bidRate != 'number' ? 1000 : mnode[node].bidRate
+                    const dmvote = typeof mnode[node].dm != 'number' ? 10000 : mnode[node].dm
+                    const dsvote = typeof mnode[node].ds != 'number' ? 0 : mnode[node].ds
+                    mnode[node].ds = dsvote
+                    mnode[node].dm = dmvote
+                    dexfeea += parseInt(wins * gbal * feevote);
+                    dexfeed += parseInt(wins * gbal * 1000);
+                    dexmaxa += parseInt(wins * gbal * dmvote);
+                    dexmaxd += parseInt(wins * gbal * 10000);
+                    dexslopea += parseInt(wins * gbal * dsvote);
+                    dexsloped += parseInt(wins * gbal * 10000);
+                    i = parseInt(wins / j * b);
+                    cbals[node] = cbals[node] ? cbals[node] += i : cbals[node] = i;
+                    bals.rn -= i;
+                    const _at = _atfun(node);
+                    if (i) {
+                        post = post + `* ${_at}${node} awarded ${parseFloat(i / 1000).toFixed(3)} ${config.TOKEN} for ${wins} credited transaction(s)\n`;
+                        console.log(num + `:@${node} awarded ${parseFloat(i / 1000).toFixed(3)} ${config.TOKEN} for ${wins} credited transaction(s)`);
+                    }
+                }
+            }
+            stats.dex_fee = parseFloat((dexfeea / dexfeed)/100).toFixed(5);
+            stats.dex_max = parseFloat((dexmaxa / dexmaxd)*100).toFixed(2);
+            stats.dex_slope = parseFloat((dexslopea / dexsloped)*100).toFixed(2);
             var newOwners = {}
             if(j){
                 for (var node in mnode) { //and pay them
@@ -160,9 +196,9 @@ function dao(num) {
                 }
             }
             for(var node in newOwners){
-                newOwners[node].g = runners[node].g
+                newOwners[node].g = runners[node]?.g ? runners[node].g : 0;
             }
-            var up_op = accountUpdate( pick(newOwners) )
+            var up_op = accountUpdate( stats, mnode, pick(newOwners) )
             function pick(noobj){
                 var top = 0
                 var topwin = 0
@@ -174,16 +210,19 @@ function dao(num) {
                     if(noobj[node].wins > topwin){
                         topwin = noobj[node].wins
                     }
-                    tops.push(noobj[node].g )
+                    if(noobj[node].wins)tops.push(noobj[node].g )
                 }
-                tops.sort()
-                tops.reverse()
+                tops.sort((a,b)=>{return b-a})
                 var thresh = tops[parseInt(tops.length/2) - 1]
-                var out = []
+                var sorting = [], out = []
                 for (var node in noobj){
-                    if(noobj[node].g >= thresh && noobj[node].wins >= (topwin * 100 / 90)){
-                        out.push(node)
+                    if(noobj[node].g >= thresh && noobj[node].wins >= (topwin * 90 / 100)){
+                        sorting.push({node, g: noobj[node].g})
                     }
+                }
+                sorting.sort((a,b)=>{return b.g - a.g})
+                for (var i = 0; i < sorting.length; i++){
+                    out.push(sorting[i].node)
                 }
                 return out
             }
@@ -341,7 +380,7 @@ function dao(num) {
                         dex.hbd.days = {};
                     dex.hbd.days[num] = hib;
                 }
-                let liqt = parseInt((bal.rm/365)*(stats.liq_reward/100))
+                let liqt = config.features.liquidity ? parseInt((bals.rm/365)*(stats.liq_reward/100)) : 0
                 if (liqt > 0){
                     let liqa = 0
                     for (var acc in dex.liq){
@@ -392,6 +431,7 @@ function dao(num) {
                     delete cpost[i];
                     contentRewards = contentRewards + `* [${br[i].post.title || `${config.TOKEN} Content`}](https://www.${config.mainFE}/@${br[i].post.author}/${br[i].post.permlink}) by @${br[i].post.author} awarded ${parseFloat(parseInt(dif - bucket) / 1000).toFixed(3)} ${config.TOKEN}\n`;
                 }
+                console.log({bucket})
                 bals.rc += bucket;
                 contentRewards = contentRewards + `\n*****\n`;
             }
@@ -442,7 +482,7 @@ function dao(num) {
                     })
                 }
             ];
-            if(up_op)daops.push({ type: 'put', path: ['mso'], data: stringify(['account_update', up_op]) });
+            if(up_op)daops.push({ type: 'put', path: ['mso', `${num}:ac`], data: stringify(['account_update', up_op]) });
             daops.push({ type: 'put', path: ['dex'], data: dex });
             daops.push({ type: 'put', path: ['stats'], data: stats });
             daops.push({ type: 'put', path: ['balances'], data: bals });
@@ -450,7 +490,7 @@ function dao(num) {
             daops.push({ type: 'put', path: ['posts'], data: cpost });
             daops.push({ type: 'put', path: ['markets', 'node'], data: mnode });
             daops.push({ type: 'put', path: ['delegations'], data: deles });
-            if(config.DAILY)daops.push({ type: 'put', path: ['escrow', config.leader, 'comment'], data: op });
+            if(config.features.daily)daops.push({ type: 'put', path: ['escrow', config.leader, 'comment'], data: op });
             for (var i = daops.length - 1; i >= 0; i--) {
                 if (daops[i].type == 'put' && Object.keys(daops[i].data).length == 0 && typeof daops[i].data != 'number' && typeof daops[i].data != 'string') {
                     daops.splice(i, 1);
@@ -586,11 +626,12 @@ function accountUpdate(stats, nodes, arr){
       "key_auths": []
     },
     "memo_key": config.msPubMemo,
-    "json_metadata": ""
+    "json_metadata": stringify(config.msmeta)
+
   }
   for (var i = 0; i < arr.length; i++) {
     updateOp.active.account_auths.push([arr[i], 1])
-    updateOp.owner.key_auths.push(nodes[[arr[i]].mskey, 1])
+    updateOp.owner.key_auths.push([nodes[arr[i]].mskey, 1])
   }
   return updateOp
 }
