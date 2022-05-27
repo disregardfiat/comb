@@ -89,7 +89,7 @@ exports.dex_sell = (json, from, active, pc) => {
             (order.type == "MARKET" ||
               parseFloat(price) >= parseFloat(order.rate))
           ) {
-            let next = dex.buyOrders[`${price.toFixed(6)}:${item}`];
+            let next = dex.buyOrders?.[`${price.toFixed(6)}:${item}`];
             if (!next) {
               dex.buyBook = DEX.remove(item, dex.buyBook);
               continue sell_loop;
