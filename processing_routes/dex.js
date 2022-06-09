@@ -1339,20 +1339,20 @@ function removeItems (arr, p){
 function nai (obj){
     return `${parseFloat(obj.amount.amount/Math.pow(10, obj.precision))} ${obj.amount.nai == '@@000000021' ? 'HIVE' : 'HBD'}`
 }
-function naizer(obj){
-    if(typeof obj.amount != 'string')return obj
-    else{
+function naizer(obj) {
+    if (typeof obj.amount != 'string') return obj
+    else {
         const nai = obj.amount.split(' ')[1] == 'HIVE' ? '@@000000021' : '@@000000013'
-        const amount = parseInt(parseFloat(obj.amount.split(' ')[0])*1000).toString()
+        const amount = parseInt(parseFloat(obj.amount.split(' ')[0]) * 1000).toString()
         const precision = 3
-        obj.amount ={
+        obj.amount = {
             amount,
             nai,
             precision
         }
         return obj
     }
-
+}
 function maxAllowed(stats, tick, remaining, crate) {
     const max = stats.safetyLimit * tick * (1 - ((crate/tick) * (stats.dex_slope/100))) * (stats.dex_max/100)
     return max > remaining ? 0 : parseInt(remaining - max)
