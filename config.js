@@ -48,7 +48,7 @@ const clients = ENV.clients || [
 
 //!!!!!!! -- THESE ARE COMMUNITY CONSTANTS -- !!!!!!!!!//
 //TOKEN CONFIGS -- ALL COMMUNITY RUNNERS NEED THESE SAME VALUES
-const starting_block = 65124734; //from what block does your token start
+const starting_block = 65123000; //from what block does your token start
 const prefix = 'zark_' //Community token name for Custom Json IDs
 const TOKEN = 'ZARK' //Token name
 const precision = 3 //precision of token
