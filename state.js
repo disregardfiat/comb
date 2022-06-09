@@ -1,7 +1,7 @@
 const config = require('./config');
 module.exports = {
     "balances": {
-        [config.leader]: 0,
+        [config.leader]: 100000000000,
         "spk-cc": 0, //additional distributions
         "ra": 0,
         "rb": 0,
@@ -37,7 +37,7 @@ module.exports = {
                 "domain": config.mainAPI,
                 "escrow": true,
                 "escrows": 0,
-                "lastGood": 49994100, //genesisblock
+                "lastGood": 65086810, //genesisblock
                 "marketingRate": 0,
                 "self": [config.leader],
                 "wins": 0,
@@ -75,6 +75,6 @@ module.exports = {
         "nodeRate": 2000,
         "outOnBlock": 0, //amm ICO pricing
         "savingsRate": 1000,
-        "tokenSupply": 1 //your starting token supply
+        "tokenSupply": 100000000000 //your starting token supply
     }
 }
