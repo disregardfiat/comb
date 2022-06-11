@@ -423,12 +423,12 @@ function verify(trx, sig, at){
                             }
                         } else {
                             hiveClient.api.broadcastTransactionSynchronous(tx, function(err, result) {
-                            if (err && err.data.code == 4030100){
+                            if (err && err.data?.code == 4030100){
                                 console.log('EXPIRED')
                                 resolve('EXPIRED')
-                            } else if (err && err.data.code == 3010000) { //missing authority
+                            } else if (err && err.data?.code == 3010000) { //missing authority
                                 console.log('MISSING')
-                            } else if (err && err.data.code == 10) { //duplicate transaction
+                            } else if (err && err.data?.code == 10) { //duplicate transaction
                                 console.log('SENT:Signer')
                                 resolve('SENT')
                             } else {

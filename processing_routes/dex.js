@@ -1541,13 +1541,13 @@ exports.transfer = (json, pc) => {
                   hive_id: json.transaction_id,
                 };
                 contract.amount = parseInt(remaining / crate);
-                (cfee =
+                contract.fee =
                   parseFloat(stats.dex_fee) > 0
                     ? parseInt(
                         parseInt(contract.amount) * parseFloat(stats.dex_fee)
                       ) + 1
-                    : parseInt(contract.amount * 0.005) + 1),
-                  (contract[order.pair] = remaining);
+                    : parseInt(contract.amount * 0.005) + 1
+                contract[order.pair] = remaining
                 if (remaining) {
                   dex.buyBook = DEX.insert(txid, crate, dex.buyBook, "buy");
                   path = chronAssign(expBlock, {
@@ -2264,7 +2264,7 @@ function maxAllowed(stats, tick, remaining, crate) {
   const max =
     stats.safetyLimit *
     tick *
-    (1 - (crate / tick) * (stats.dex_slope / 100)) *
+    (1 - (crate < tick ? crate / tick : 0) * (stats.dex_slope / 100)) *
     (stats.dex_max / 100);
   return max > remaining ? 0 : parseInt(remaining - max);
 }

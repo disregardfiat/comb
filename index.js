@@ -1,5 +1,5 @@
 const config = require("./config");
-const VERSION = "v1.0.4"; //Did you change the package version?
+const VERSION = "v1.0.5"; //Did you change the package version?
 exports.VERSION = VERSION;
 exports.exit = exit;
 exports.processor = processor;
@@ -13,16 +13,13 @@ var block = {
   chain: [],
 };
 exports.block = block;
-const args = require("minimist")(process.argv.slice(2));
 const express = require("express");
 const stringify = require("json-stable-stringify");
-const IPFS = require("ipfs-api"); //ipfs-http-client doesn't work
+const IPFS = require("ipfs-http-client-lite"); //ipfs-http-client doesn't work
 const fetch = require("node-fetch");
-var ipfs = new IPFS({
-  host: config.ipfshost,
-  port: config.ipfsport,
-  protocol: config.ipfsprotocol,
-});
+var ipfs = IPFS(
+  `${config.ipfsprotocol}://${config.ipfshost}:${config.ipfsport}`
+);
 console.log(
   `IPFS: ${config.ipfshost == "ipfs" ? "DockerIPFS" : config.ipfshost}:${
     config.ipfsport
@@ -152,6 +149,7 @@ const {
   createAccount,
   updateAccount,
 } = require("./msa");
+const { isBuffer } = require("util");
 //const { resolve } = require('path');
 const api = express();
 var http = require("http").Server(api);
@@ -169,8 +167,8 @@ exports.processor = processor;
 //HIVE API CODE
 
 //Start Program Options
-dynStart();
-//startWith("QmPk18DK51gNqNjRpSMJxVH8NhbpoqBVGwuaZ5wDK2Wkfd", true);
+//dynStart();
+startWith("QmXedNPCLxXxMrSkBjYgMaKy1uCmixiJ2LGdruLfeCsRgs", true);
 Watchdog.monitor();
 
 // API defs
@@ -1173,27 +1171,31 @@ function unwrapOps(arr) {
 
 function ipfspromise(hash) {
   return new Promise((resolve, reject) => {
-    ipfs.cat(hash, function (err, data) {
-      if (err) {
-        //console.log(err)
-      } else {
-        resolve(data);
-      }
-    });
-    fetch(`https://ipfs.io/ipfs/${hash}`)
+    const ipfslinks = [
+      "https://ipfs:8080/ipfs/",
+      "https://ipfs.io/ipfs/",
+      "https://ipfs.infura.io/ipfs/",
+    ];
+    if (config.ipfshost == "ipfs") {
+      catIPFS(hash, 0, ipfslinks)
+    } else {
+      catIPFS(hash, 1, ipfslinks)
+    }
+    function catIPFS(hash, i, arr) {
+      fetch(arr[i] + hash)
       .then((r) => r.text())
       .then((res) => {
         resolve(res);
       })
       .catch((e) => {
-        fetch(`https://ipfs.infura.io/ipfs/${hash}`)
-          .then((r) => r.text())
-          .then((res) => {
-            resolve(res);
-          })
-          .catch((e) => reject(e));
-      });
-  });
+        if(i < arr.length - 1){
+          catIPFS(hash, i + 1, ipfslinks)
+        } else {
+          reject(e);
+        }
+      })
+    }
+  })
 }
 
 function issc(n, b, i, r, a) {
