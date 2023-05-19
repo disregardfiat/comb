@@ -691,7 +691,7 @@ exports.runners = (req, res, next) => {
             result,
             runners,
             latest: [
-                {api: "https://spkinstant.hivehoneycomb.com"}
+                {api: "https://token.dlux.io"}
             ],
             node: config.username,
             behind: RAM.behind,
@@ -1642,6 +1642,7 @@ exports.coincheck = (state) => {
                 gov += state.gov[bal]
             }
         }
+        console.log(Object.keys(state))
         var pow = 0,
             powt = state.pow.t
         for (bal in state.pow) {
@@ -1704,52 +1705,84 @@ exports.coin = (req, res, next) => {
 
 exports.user = (req, res, next) => {
     let un = req.params.un,
-        bal = getPathNum(['balances', un]),
-        cbal = getPathNum(['cbalances', un]),
-        claims = getPathObj(['claims', un]),
-        pb = getPathNum(['pow', un]),
-        lp = getPathNum(['granted', un, 't']),
-        lg = getPathNum(['granting', un, 't']),
-        contracts = getPathObj(['contracts', un]),
-        incol = getPathNum(['col', un]), //collateral
-        gp = getPathNum(['gov', un]),
-        pup = getPathObj(['up', un]),
-        pdown = getPathObj(['down', un])
+      bal = getPathNum(["balances", un]),
+      cbal = getPathNum(["cbalances", un]),
+      claims = getPathObj(["claims", un]),
+      pb = getPathNum(["pow", un]),
+      lp = getPathNum(["granted", un, "t"]),
+      lg = getPathNum(["granting", un, "t"]),
+      contracts = getPathObj(["contracts", un]),
+      incol = getPathNum(["col", un]), //collateral
+      gp = getPathNum(["gov", un]),
+      powdown = getPathObj(["powd", un]),
+      pup = getPathObj(["up", un]),
+      pdown = getPathObj(["down", un]),
+      chron = getPathObj(["chrono"]);
+      tick = getPathObj(["dex", "hive", "tick"]);
     res.setHeader('Content-Type', 'application/json');
-    Promise.all([bal, pb, lp, contracts, incol, gp, pup, pdown, lg, cbal, claims])
-        .then(function(v) {
-            var arr = []
-            for (var i in v[3]) {
-                var c = v[3][i]
-                if(c.partial){
-                    c.partials = []
-                    for(var p in c.partial){
-                        var j = c.partial[p]
-                        j.txid = p
-                        c.partials.push(j)
-                    }
-                }
-                arr.push(c)
+    Promise.all([
+      bal,
+      pb,
+      lp,
+      contracts,
+      incol,
+      gp,
+      pup,
+      pdown,
+      lg,
+      cbal,
+      claims,
+      tick,
+      chron,
+      powdown,
+    ])
+      .then(function (v) {
+        var arr = [];
+        for (var i in v[3]) {
+          var c = v[3][i];
+          if (c.partial) {
+            c.partials = [];
+            for (var p in c.partial) {
+              var j = c.partial[p];
+              j.txid = p;
+              c.partials.push(j);
             }
-            res.send(JSON.stringify({
-                balance: v[0],
-                claim: v[9],
-                poweredUp: v[1],
-                granted: v[2],
-                granting: v[8],
-                heldCollateral: v[4],
-                contracts: arr,
-                up: v[6],
-                down: v[7],
-                gov: v[5],
-                node: config.username,
-                behind: RAM.behind,
-                VERSION
-            }, null, 3))
-        })
-        .catch(function(err) {
-            console.log(err)
-        })
+          }
+          arr.push(c);
+        }
+        var power_downs = v[13];
+        if (power_downs) {
+          for (var pd in power_downs) {
+            power_downs[pd] = v[12][pd];
+          }
+        }
+        res.send(
+          JSON.stringify(
+            {
+              balance: v[0],
+              claim: v[9],
+              poweredUp: v[1],
+              granted: v[2],
+              granting: v[8],
+              heldCollateral: v[4],
+              contracts: arr,
+              up: v[6],
+              down: v[7],
+              power_downs,
+              gov: v[5],
+              tick: v[11],
+              node: config.username,
+              behind: RAM.behind,
+              VERSION,
+            },
+            null,
+            3
+          )
+        );
+      })
+      .catch(function (err) {
+        console.log(err);
+      });
 }
 
 exports.blog = (req, res, next) => {
