@@ -80,6 +80,10 @@ Which include Docker and IPFS linking
 
 * Set configuration variables
 
+Choose your chain:
+`cp <token>.config.js config.js`
+Or bring your own communities config and place it at config.js
+
 `nano .env` or your favorite editor
 
 `account=hiveaccount
