@@ -1,5 +1,5 @@
 
-const VERSION = 'v1.4.4'
+const VERSION = 'v1.4.5'
 exports.VERSION = VERSION
 var block = {
   ops: [],
@@ -402,7 +402,7 @@ Promise.all([config.startURL, config.clientURL]).then(urls => {
         NFT.AMEOp([amp, setamp], passed.delKey, num, b)
           .then((x) => res(x));
       },
-      ahhe: function (b, passed, res, rej, num, prand, ints) {
+      ahhe: function (b, passed, res, rej, num, prand, ints, bh) {
         let ahhp = getPathObj(['ahh', b.item]),
           setahhp = '';
         if (b.item.split(':')[0] != 'Qm') setahhp = getPathObj(['sets', b.item.split(':')[0]]);
@@ -468,13 +468,13 @@ Promise.all([config.startURL, config.clientURL]).then(urls => {
             function loop(i, ints, j) {
               ints++
               let delKey = chrops[j[i]]
-              if (i < j.length) ChonOp(delKey, ints, prand, num).then(x => {
+              if (i < j.length) ChonOp(delKey, ints, prand, num, bh).then(x => {
                 i++
                 if (i < j.length) loop(i, ints, j)
                 else every()
               })
               else every()
-              function ChonOp(delKey, ints, prand, num) {
+              function ChonOp(delKey, ints, prand, num, bh) {
                 return new Promise((res, rej) => {
                   store.getWith(['chrono', chrops[j[i]]], { delKey, ints }, function (e, b, passed) {
                     // switch (b.op) {
