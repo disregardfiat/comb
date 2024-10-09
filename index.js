@@ -563,7 +563,7 @@ Promise.all([config.startURL, config.clientURL]).then(urls => {
                     //         break;
                     //     default:
                     // }
-                    chronOps[b.op](b, passed, res, rej, num, prand, ints)
+                    chronOps[b.op](b, passed, res, rej, num, prand, ints, bh)
                   })
                 })
               }
